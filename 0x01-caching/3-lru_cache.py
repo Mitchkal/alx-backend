@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-last recently used caching
+least recently used caching
 """
 
+from threading import RLock
 BaseCaching = __import__('base_caching').BaseCaching
 
 
@@ -16,35 +17,44 @@ class LRUCache(BaseCaching):
         initialization
         """
         super().__init__()
-        self.keys = []
+        self.__rlock = RLock()
+        self.register = []
 
     def put(self, key, item):
         """
-        caches item using LIRU
+        caches item using LRU
         """
         if key is None or item is None:
             return
-        # add item to cache
-        self.cache_data.update({key: item})
-        # check if cache item is greater than max
 
-        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
-            # if so, pop lru item
-            lru = self.keys.pop(0)
-            # delete lru item from cache
-            del self.cache_data[lru]
-            print(f"DISCARD: {lru}")
-        if key not in self.keys:
-            self.keys.append(key)
-        else:
-            if self.keys[-1] != key:
-                self.keys.remove(key)
-                self.keys.append(key)
+        mru = self. _limit(key)
+        with self.__rlock:
+            self.cache_data.update({key: item})
+        if mru is not None:
+            print(f"DISCARD: {mru}")
 
     def get(self, key):
         """
         retrieves item from cache
         """
-        if key is None or key not in self.cache_data.keys():
-            return None
-        return self.cache_data.get(key)
+        with self.__rlock:
+            if key in self.register:
+                self._limit(key)
+
+            return self.cache_data.get(key)
+
+    def _limit(self, key):
+        """
+        deletes from cache when max
+        """
+        out = None
+
+        with self.__rlock:
+            if key not in self.register:
+                if len(self.cache_data) == BaseCaching.MAX_ITEMS:
+                    out = self.register.pop(0)
+                    self.cache_data.pop(out)
+            else:
+                self.register.remove(key)
+            self.register.insert(len(self.register), key)
+        return out
