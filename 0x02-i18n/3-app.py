@@ -21,7 +21,6 @@ class Config(object):
 
 
 app.config.from_object(Config)
-# app.config.from_pyfile(babel.cfg)
 
 
 @app.route('/', methods=['GET'], strict_slashes=False)
