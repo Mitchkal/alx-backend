@@ -55,22 +55,24 @@ def get_locale() -> str:
     return request.accept_languages.best_match(app.config['LANGUAGES'])
 
 
-def get_user(user_id) -> Union[dict, None]:
+def get_user() -> Union[dict, None]:
     """
     returns user dictionary or none if id not found in user
     """
-    if user_id is not None:
-        return users.get(user_id)
-    return None
+    try:
+        login_as = request.args.get('login_as', None)
+        user = users[int(login_as)]
+    except Exception as e:
+        user = None
 
 
 @app.before_request
 def before_request():
     """
-    runs before the request to retrieve user id
+    operates before any request
     """
-    user_id = request.args.get('login_as', type=int)
-    g.user = get_user(user_id)
+    user = get_user()
+    g.user = user
 
 
 if __name__ == '__main__':
