@@ -4,6 +4,7 @@ Flask app setup
 """
 from flask import Flask, render_template, request, g
 from flask_babel import Babel, _
+from typing import Union
 
 
 app = Flask(__name__, template_folder='templates')
@@ -39,7 +40,7 @@ def index() -> str:
     welcome_message = _('not_logged_in')
     if g.user:
         welcome_message = _('logged_in_as', username=g.user['name'])
-    return render_template('5-index.html', welcome_message=welcome_message)
+    return render_template('6-index.html', welcome_message=welcome_message)
 
 
 @babel.localeselector
@@ -51,18 +52,31 @@ def get_locale() -> str:
     if locale in app.config['LANGUAGES']:
         return locale
 
-    return request.accept_languages.best_match(app.config['LANGUAGES'])
+    user_locale = g.user.get('locale') if g.user else None
+    if user_locale in app.config['LANGUAGES']:
+        return user_locale
+
+    best_match = request.accept_languages.best_match(app.config['LANGUAGES'])
+    if best_match:
+        return best_match
+
+    return app.config['BABEL_DEFAULT_LOCALE']
 
 
-def get_user(user_id) -> dict:
+def get_user(user_id) -> Union[dict, None]:
     """
     returns user dictionary or none if id not found in user
     """
-    return users.get(user_id)
+    if user_id is not None:
+        return users.get(user_id)
+    return None
 
 
 @app.before_request
 def before_request():
+    """
+    runs before the request to retrieve user id
+    """
     user_id = request.args.get('login_as', type=int)
     g.user = get_user(user_id)
 
